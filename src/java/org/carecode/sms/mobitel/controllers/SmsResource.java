@@ -49,11 +49,11 @@ public class SmsResource {
         msg.setMessage(message);
         msg.setSender(userAlias);
         msg.getRecipients().add(number);
-        msg.setMessageType(1);
-        // If needed, handle promo logic here, e.g.:
-        // if ("YES".equalsIgnoreCase(promo)) {
-        //     msg.setMessageType(2);
-        // }
+        if ("YES".equalsIgnoreCase(promo)) {
+            msg.setMessageType(1);
+        } else {
+            msg.setMessageType(0);
+        }
 
         // Send the message
         int result = -1;
