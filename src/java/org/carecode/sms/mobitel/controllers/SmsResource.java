@@ -18,7 +18,6 @@ import wsdl.User;
 
 @Path("sms")
 public class SmsResource {
-
     @GET
     @Path("send")
     @Produces(MediaType.APPLICATION_JSON)
