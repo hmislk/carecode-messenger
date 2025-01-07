@@ -5,7 +5,6 @@ package org.carecode.sms.mobitel.controllers;
  * @author Dr M H B Ariyaratne <buddhika.ari@gmail.com>
  */
 public class Sms {
-
     private String username;
     private String password;
     private String userAlias;

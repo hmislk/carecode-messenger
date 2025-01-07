@@ -1,15 +1,14 @@
 package org.carecode.sms.mobitel.controllers;
 
 import java.util.Set;
-import javax.ws.rs.core.Application;
+import jakarta.ws.rs.core.Application;
 
 /**
  *
  * @author Dr M H B Ariyaratne <buddhika.ari@gmail.com>
  */
-@javax.ws.rs.ApplicationPath("ws")
+@jakarta.ws.rs.ApplicationPath("ws")
 public class ApplicationConfig extends Application {
-
     @Override
     public Set<Class<?>> getClasses() {
         Set<Class<?>> resources = new java.util.HashSet<>();
@@ -26,5 +25,4 @@ public class ApplicationConfig extends Application {
     private void addRestResourceClasses(Set<Class<?>> resources) {
         resources.add(org.carecode.sms.mobitel.controllers.SmsResource.class);
     }
-    
 }
