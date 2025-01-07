@@ -16,3 +16,4 @@ nbproject/Makefile-debug.xml
 *.log
 *.cache
 
+out

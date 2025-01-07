@@ -1,7 +1,7 @@
 package org.carecode.sms.mobitel.controllers;
 
-import javax.inject.Named;
-import javax.enterprise.context.RequestScoped;
+import jakarta.inject.Named;
+import jakarta.enterprise.context.RequestScoped;
 
 /**
  *
@@ -10,11 +10,9 @@ import javax.enterprise.context.RequestScoped;
 @Named
 @RequestScoped
 public class SmsController {
-
     /**
      * Creates a new instance of SmsController
      */
     public SmsController() {
     }
-    
 }
