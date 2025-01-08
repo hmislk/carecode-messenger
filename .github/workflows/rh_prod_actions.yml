@@ -22,6 +22,7 @@ jobs:
       - name: Build with Java Compiler
         run: |
           javac -cp "lib/ESMSlibV4.0.jar:lib/jakarta.ws.rs-api-3.1.0.jar:lib/jakarta.enterprise.cdi-api-4.1.0.jar:lib/jakarta.inject-api-2.0.1.jar" -d target/WEB-INF/classes src/java/org/carecode/sms/mobitel/controllers/*
+          mkdir target/WEB-INF/lib
           cp lib/ESMSlibV4.0.jar target/WEB-INF/lib/
           jar -cvf target/ccmm.war -C target/ .
           jar tf target/ccmm.war
