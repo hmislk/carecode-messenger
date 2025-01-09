@@ -1,13 +1,13 @@
 package org.carecode.sms.mobitel.controllers;
 
 import java.util.Set;
-import jakarta.ws.rs.core.Application;
+import javax.ws.rs.core.Application;
 
 /**
  *
  * @author Dr M H B Ariyaratne <buddhika.ari@gmail.com>
  */
-@jakarta.ws.rs.ApplicationPath("ws")
+@javax.ws.rs.ApplicationPath("ws")
 public class ApplicationConfig extends Application {
     @Override
     public Set<Class<?>> getClasses() {
