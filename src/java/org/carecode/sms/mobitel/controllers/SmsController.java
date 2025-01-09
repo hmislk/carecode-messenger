@@ -1,10 +1,9 @@
 package org.carecode.sms.mobitel.controllers;
 
-import javax.inject.Named;
-import javax.enterprise.context.RequestScoped;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Named;
 
 /**
- *
  * @author Dr M H B Ariyaratne <buddhika.ari@gmail.com>
  */
 @Named

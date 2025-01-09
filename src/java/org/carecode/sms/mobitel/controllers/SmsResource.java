@@ -1,14 +1,11 @@
 package org.carecode.sms.mobitel.controllers;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import lk.mobitel.esms.message.SMSManager;
 import lk.mobitel.esms.session.NullSessionException;
 import lk.mobitel.esms.session.SessionManager;
@@ -16,15 +13,22 @@ import lk.mobitel.esms.test.ServiceTest;
 import wsdl.SmsMessage;
 import wsdl.User;
 
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import static java.lang.String.format;
+
 @Path("sms")
 public class SmsResource {
+    private static final Logger logger = Logger.getLogger(SmsResource.class.getName());
 
     @POST
     @Path("send")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response sendFullLogic(SmsRequest smsRequest) {
-        System.out.println("Received POST request to send SMS");
+        logger.log(Level.INFO, "Received POST request to send SMS");
 
         // Extract parameters from the request object
         String userName = smsRequest.getUsername();
@@ -35,8 +39,10 @@ public class SmsResource {
         String promo = smsRequest.getPromo();
 
         // Log received parameters for debugging
-        System.out.printf("username=%s, password=%s, userAlias=%s, number=%s, message=%s, promo=%s%n",
-                userName, password, userAlias, number, message, promo);
+        logger.log(
+                Level.INFO,
+                format("username=%s, password=%s, userAlias=%s, number=%s, message=%s, promo=%s",
+                        userName, password, userAlias, number, message, promo));
 
         User user = new User();
         user.setUsername(userName);
@@ -50,7 +56,7 @@ public class SmsResource {
         SessionManager sm = SessionManager.getInstance();
         sm.login(user);
         boolean logged = sm.isSession();
-        System.out.println("logged = " + logged);
+        logger.log(Level.INFO, format("User logged = %s", logged));
 
         // Create the SmsMessage
         SmsMessage msg = new SmsMessage();
@@ -64,7 +70,7 @@ public class SmsResource {
         SMSManager smsManager = new SMSManager();
         try {
             result = smsManager.sendMessage(msg);
-            System.out.println("result = " + result);
+            logger.log(Level.INFO, format("Result = %s", result));
         } catch (NullSessionException ex) {
             Logger.getLogger(SmsResource.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -85,9 +91,9 @@ public class SmsResource {
         boolean logStatus2 = sm.isSession();
 
         // Build JSON response
-        String jsonResponse = String.format(
+        String jsonResponse = format(
                 "{\"serviceTestResult\":\"%s\",\"logStatus\":\"%s\",\"messageSendResult\":%d,"
-                + "\"deliveryReportsCount\":%d,\"logStatus2\":\"%s\"}",
+                        + "\"deliveryReportsCount\":%d,\"logStatus2\":\"%s\"}",
                 serviceTestResult,
                 logged,
                 result,

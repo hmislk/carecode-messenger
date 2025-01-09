@@ -1,7 +1,6 @@
 package org.carecode.sms.mobitel.controllers;
 
 /**
- *
  * @author Dr M H B Ariyaratne <buddhika.ari@gmail.com>
  */
 public class SmsRequest {
