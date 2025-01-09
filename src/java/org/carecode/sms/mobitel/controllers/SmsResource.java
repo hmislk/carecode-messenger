@@ -1,14 +1,14 @@
 package org.carecode.sms.mobitel.controllers;
 
+import javax.ws.rs.Consumes;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 import lk.mobitel.esms.message.SMSManager;
 import lk.mobitel.esms.session.NullSessionException;
 import lk.mobitel.esms.session.SessionManager;
@@ -18,18 +18,26 @@ import wsdl.User;
 
 @Path("sms")
 public class SmsResource {
-    @GET
+
+    @POST
     @Path("send")
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response sendFullLogic(
-            @QueryParam("userName") String userName,
-            @QueryParam("password") String password,
-            @QueryParam("userAlias") String userAlias,
-            @QueryParam("number") String number,
-            @QueryParam("message") String message,
-            @QueryParam("promo") String promo
-    ) {
-        // Create the User object
+    public Response sendFullLogic(SmsRequest smsRequest) {
+        System.out.println("Received POST request to send SMS");
+
+        // Extract parameters from the request object
+        String userName = smsRequest.getUsername();
+        String password = smsRequest.getPassword();
+        String userAlias = smsRequest.getUserAlias();
+        String number = smsRequest.getNumber();
+        String message = smsRequest.getMessage();
+        String promo = smsRequest.getPromo();
+
+        // Log received parameters for debugging
+        System.out.printf("username=%s, password=%s, userAlias=%s, number=%s, message=%s, promo=%s%n",
+                userName, password, userAlias, number, message, promo);
+
         User user = new User();
         user.setUsername(userName);
         user.setPassword(password);
@@ -42,23 +50,21 @@ public class SmsResource {
         SessionManager sm = SessionManager.getInstance();
         sm.login(user);
         boolean logged = sm.isSession();
+        System.out.println("logged = " + logged);
 
         // Create the SmsMessage
         SmsMessage msg = new SmsMessage();
         msg.setMessage(message);
         msg.setSender(userAlias);
         msg.getRecipients().add(number);
-        if ("YES".equalsIgnoreCase(promo)) {
-            msg.setMessageType(1);
-        } else {
-            msg.setMessageType(0);
-        }
+        msg.setMessageType("YES".equalsIgnoreCase(promo) ? 1 : 0);
 
         // Send the message
         int result = -1;
         SMSManager smsManager = new SMSManager();
         try {
             result = smsManager.sendMessage(msg);
+            System.out.println("result = " + result);
         } catch (NullSessionException ex) {
             Logger.getLogger(SmsResource.class.getName()).log(Level.SEVERE, null, ex);
         }
