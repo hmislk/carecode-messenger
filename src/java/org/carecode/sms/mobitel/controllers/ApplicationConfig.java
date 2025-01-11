@@ -50,12 +50,5 @@ public class ApplicationConfig extends Application {
         } catch (IOException e) {
             logger.severe("Error loading config.properties: " + e.getMessage());
         }
-
-        /*props.setProperty("mail.smtp.host", "smtp.gmail.com");
-//        props.setProperty("mail.smtp.socketFactory.port", "465"); // Remove comment if using SSL
-//        props.setProperty("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory"); // Remove comment if using SSL
-        props.setProperty("mail.smtp.port", "587"); // Set to 465 if using SSL
-        props.setProperty("mail.smtp.auth", "true");
-        props.setProperty("mail.smtp.starttls.enable", "true"); // Comment, if using SSL*/
     }
 }
