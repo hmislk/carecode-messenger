@@ -2,8 +2,8 @@ package org.carecode.sms.mobitel.controllers;
 
 import jakarta.ws.rs.core.Application;
 
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -40,13 +40,13 @@ public class ApplicationConfig extends Application {
         return props;
     }
 
-    private static void loadPropertiesFromFile() {
+    private void loadPropertiesFromFile() {
         Properties props = System.getProperties();
 
-        final String configFilePath = "./config.properties";
+        final String configFilePath = "config.properties";
 
-        try (FileInputStream fis = new FileInputStream(configFilePath)) {
-            props.load(fis);
+        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream(configFilePath)) {
+            props.load(inputStream);
         } catch (IOException e) {
             logger.severe("Error loading config.properties: " + e.getMessage());
         }
