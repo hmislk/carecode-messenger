@@ -1,4 +1,4 @@
-package org.carecode.sms.mobitel.controllers;
+package org.carecode.messenger.email;
 
 import jakarta.mail.*;
 import jakarta.mail.internet.AddressException;
@@ -10,9 +10,11 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.carecode.messenger.common.SentStatus;
 
 import java.util.List;
 import java.util.Properties;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @Path("email")
@@ -26,6 +28,8 @@ public class EmailResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response sendEmail(final EmailRequest emailRequest) {
+        logger.log(Level.INFO, "Received POST request to send Email: " + emailRequest);
+
         try {
             updateSession();
 
@@ -33,37 +37,40 @@ public class EmailResource {
             message.setHeader("format", "flowed");
             message.setHeader("Content-Transfer-Encoding", "quoted-printable");
 
-            if (emailRequest.subject != null) {
-                message.setSubject(emailRequest.subject);
+            if (emailRequest.getSubject() != null) {
+                message.setSubject(emailRequest.getSubject());
             } else {
+                logger.severe("Subject is required.");
                 throw new RuntimeException("Subject is required.");
             }
 
-            if (emailRequest.isHtml != null && emailRequest.isHtml) {
-                message.setContent(emailRequest.body, "text/html");
+            if (emailRequest.isHtml() != null && emailRequest.isHtml()) {
+                message.setContent(emailRequest.getBody(), "text/html");
                 message.setHeader("Content-Type", "text/html; charset=utf-8");
             } else {
-                message.setText(emailRequest.body);
+                message.setText(emailRequest.getBody());
                 message.setHeader("Content-Type", "text/plain; charset=utf-8");
             }
 
-            if (emailRequest.replyTo != null) {
-                message.setReplyTo(new InternetAddress[]{new InternetAddress(emailRequest.replyTo)});
+            if (emailRequest.getReplyTo() != null) {
+                message.setReplyTo(new InternetAddress[]{new InternetAddress(emailRequest.getReplyTo())});
             } else {
                 message.setReplyTo(InternetAddress.parse("no_reply@example.com", false));
             }
 
-            if (emailRequest.recipients != null && !emailRequest.recipients.isEmpty()) {
-                message.addRecipients(Message.RecipientType.TO, getInternetAddresses(emailRequest.recipients));
+            if (emailRequest.getRecipients() != null && !emailRequest.getRecipients().isEmpty()) {
+                message.addRecipients(Message.RecipientType.TO, getInternetAddresses(emailRequest.getRecipients()));
             } else {
+                logger.severe("At least one recipient email address is required.");
                 throw new RuntimeException("At least one recipient email address is required.");
             }
 
             Transport.send(message);
-            logger.info("Email sent successfully to recipients.");
+            logger.info("Email sent successfully.");
 
-            return Response.ok(new EmailResponse(
-                    SentStatus.SENT, "Email sent successfully to recipients.")).build();
+            return Response
+                    .ok(new EmailResponse(SentStatus.SENT, "Email sent successfully."))
+                    .build();
         } catch (Exception e) {
             final String message = "Failed to send email: " + e.getMessage();
 
@@ -82,19 +89,22 @@ public class EmailResource {
                 }
             });
 
-            Authenticator auth = new Authenticator() {
-                protected PasswordAuthentication getPasswordAuthentication() {
-                    return new PasswordAuthentication(
-                            properties.getProperty("mail.username"), properties.getProperty("mail.password"));
-                }
-            };
+            if (properties.containsKey("mail.username") && properties.containsKey("mail.password")) {
+                Authenticator auth = new Authenticator() {
+                    protected PasswordAuthentication getPasswordAuthentication() {
+                        return new PasswordAuthentication(
+                                properties.getProperty("mail.username"), properties.getProperty("mail.password"));
+                    }
+                };
 
-            session = Session.getInstance(properties, auth);
+                session = Session.getInstance(properties, auth);
+            }
         }
     }
 
     private static InternetAddress[] getInternetAddresses(final List<String> recipients) {
         return recipients.stream()
+                .filter(recipientAddress -> recipientAddress != null && !recipientAddress.isEmpty())
                 .map(recipientAddress -> {
                     try {
                         return new InternetAddress(recipientAddress);

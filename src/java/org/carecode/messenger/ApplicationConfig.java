@@ -1,4 +1,4 @@
-package org.carecode.sms.mobitel.controllers;
+package org.carecode.messenger;
 
 import jakarta.ws.rs.core.Application;
 
@@ -12,7 +12,7 @@ import java.util.logging.Logger;
 /**
  * @author Dr M H B Ariyaratne <buddhika.ari@gmail.com>
  */
-@jakarta.ws.rs.ApplicationPath("ws")
+@jakarta.ws.rs.ApplicationPath("api")
 public class ApplicationConfig extends Application {
     private static final Logger logger = Logger.getLogger(ApplicationConfig.class.getName());
 
