@@ -62,8 +62,6 @@ public class SmsRequest {
     @Override
     public String toString() {
         return "SmsRequest{" +
-                "username='" + username + '\'' +
-                ", password='" + password + '\'' +
                 ", senderName='" + senderName + '\'' +
                 ", recipientNumber='" + recipientNumber + '\'' +
                 ", message='" + message + '\'' +
