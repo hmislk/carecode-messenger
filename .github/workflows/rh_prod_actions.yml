@@ -57,9 +57,9 @@ jobs:
           chmod 600 private_key.pem
 
           # Variables
-          WAR_NAME="ccmm.war"
+          WAR_NAME="messenger.war"
           WAR_DIR="/home/appuser/app/latest"
-          APP_NAME="ccmm"
+          APP_NAME="messenger"
           # SUBDOMAIN="comm"
 
           # Ensure deployment directory exists
