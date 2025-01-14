@@ -28,7 +28,7 @@ public class SmsResource {
     @Path("send")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response sendFullLogic(final SmsRequest smsRequest) {
+    public Response sendSms(final SmsRequest smsRequest) {
         logger.info("Received POST request to send Sms: " + smsRequest);
 
         final User user = new User();
