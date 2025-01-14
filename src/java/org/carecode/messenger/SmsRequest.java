@@ -1,4 +1,4 @@
-package org.carecode.sms.mobitel.controllers;
+package org.carecode.messenger;
 
 /**
  * @author Dr M H B Ariyaratne <buddhika.ari@gmail.com>

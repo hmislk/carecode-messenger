@@ -1,4 +1,4 @@
-package org.carecode.sms.mobitel.controllers;
+package org.carecode.messenger;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

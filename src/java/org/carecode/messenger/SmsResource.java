@@ -1,4 +1,4 @@
-package org.carecode.sms.mobitel.controllers;
+package org.carecode.messenger;
 
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
