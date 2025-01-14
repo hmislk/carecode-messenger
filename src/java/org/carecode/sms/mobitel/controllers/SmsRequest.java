@@ -4,15 +4,13 @@ package org.carecode.sms.mobitel.controllers;
  * @author Dr M H B Ariyaratne <buddhika.ari@gmail.com>
  */
 public class SmsRequest {
-
     private String username;
     private String password;
-    private String userAlias;
-    private String number;
+    private String senderName;
+    private String recipientNumber;
     private String message;
-    private String promo;
+    private Boolean isPromo;
 
-    // Getters and Setters
     public String getUsername() {
         return username;
     }
@@ -29,20 +27,20 @@ public class SmsRequest {
         this.password = password;
     }
 
-    public String getUserAlias() {
-        return userAlias;
+    public String getSenderName() {
+        return senderName;
     }
 
-    public void setUserAlias(String userAlias) {
-        this.userAlias = userAlias;
+    public void setSenderName(String senderName) {
+        this.senderName = senderName;
     }
 
-    public String getNumber() {
-        return number;
+    public String getRecipientNumber() {
+        return recipientNumber;
     }
 
-    public void setNumber(String number) {
-        this.number = number;
+    public void setRecipientNumber(String recipientNumber) {
+        this.recipientNumber = recipientNumber;
     }
 
     public String getMessage() {
@@ -53,11 +51,23 @@ public class SmsRequest {
         this.message = message;
     }
 
-    public String getPromo() {
-        return promo;
+    public boolean isPromo() {
+        return isPromo != null && isPromo;
     }
 
-    public void setPromo(String promo) {
-        this.promo = promo;
+    public void setIsPromo(Boolean isPromo) {
+        this.isPromo = isPromo;
+    }
+
+    @Override
+    public String toString() {
+        return "SmsRequest{" +
+                "username='" + username + '\'' +
+                ", password='" + password + '\'' +
+                ", senderName='" + senderName + '\'' +
+                ", recipientNumber='" + recipientNumber + '\'' +
+                ", message='" + message + '\'' +
+                ", isPromo='" + isPromo + '\'' +
+                '}';
     }
 }

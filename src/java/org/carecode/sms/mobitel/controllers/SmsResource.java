@@ -14,7 +14,6 @@ import wsdl.SmsMessage;
 import wsdl.User;
 
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.lang.String.format;
@@ -27,80 +26,76 @@ public class SmsResource {
     @Path("send")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response sendFullLogic(SmsRequest smsRequest) {
-        logger.log(Level.INFO, "Received POST request to send SMS");
+    public Response sendFullLogic(final SmsRequest smsRequest) {
+        logger.info("Received POST request to send Sms: " + smsRequest);
 
-        // Extract parameters from the request object
-        String userName = smsRequest.getUsername();
-        String password = smsRequest.getPassword();
-        String userAlias = smsRequest.getUserAlias();
-        String number = smsRequest.getNumber();
-        String message = smsRequest.getMessage();
-        String promo = smsRequest.getPromo();
+        final User user = new User();
+        user.setUsername(smsRequest.getUsername());
+        user.setPassword(smsRequest.getPassword());
 
-        // Log received parameters for debugging
-        logger.log(
-                Level.INFO,
-                format("username=%s, password=%s, userAlias=%s, number=%s, message=%s, promo=%s",
-                        userName, password, userAlias, number, message, promo));
+        final String serviceTestResult = runSmsServiceTest(user);
 
-        User user = new User();
-        user.setUsername(userName);
-        user.setPassword(password);
+        final SessionManager sessionManager = getLoggedInSessionManager(user);
 
-        // Test the service
-        ServiceTest test = new ServiceTest();
-        String serviceTestResult = test.testService(user);
-
-        // Session handling
-        SessionManager sm = SessionManager.getInstance();
-        sm.login(user);
-        boolean logged = sm.isSession();
-        logger.log(Level.INFO, format("User logged = %s", logged));
-
-        // Create the SmsMessage
-        SmsMessage msg = new SmsMessage();
-        msg.setMessage(message);
-        msg.setSender(userAlias);
-        msg.getRecipients().add(number);
-        msg.setMessageType("YES".equalsIgnoreCase(promo) ? 1 : 0);
+        final SmsMessage msg = getSmsMessage(smsRequest);
 
         // Send the message
         int result = -1;
         SMSManager smsManager = new SMSManager();
         try {
             result = smsManager.sendMessage(msg);
-            logger.log(Level.INFO, format("Result = %s", result));
+            logger.info(format("Sent message result = %s", result));
         } catch (NullSessionException ex) {
-            Logger.getLogger(SmsResource.class.getName()).log(Level.SEVERE, null, ex);
+            logger.severe(ex.getMessage());
         }
 
-        // Get delivery reports
-        int reportsCount = 0;
+        final int deliveryReportsCount = getDeliveryReportsCount(smsRequest, smsManager);
+
+        sessionManager.logout();
+
+        return Response
+                .ok(new SmsResponse(result, serviceTestResult, deliveryReportsCount))
+                .build();
+    }
+
+    private static int getDeliveryReportsCount(final SmsRequest smsRequest, final SMSManager smsManager) {
+        int deliveryReportsCount = 0;
+
         try {
-            List<SmsMessage> deliveryReports = smsManager.getDeliveryReports(userAlias);
+            List<SmsMessage> deliveryReports = smsManager.getDeliveryReports(smsRequest.getSenderName());
+
             if (deliveryReports != null) {
-                reportsCount = deliveryReports.size();
+                deliveryReportsCount = deliveryReports.size();
             }
         } catch (NullSessionException ex) {
-            Logger.getLogger(SmsResource.class.getName()).log(Level.SEVERE, null, ex);
+            logger.severe(ex.getMessage());
         }
 
-        // Logout
-        sm.logout();
-        boolean logStatus2 = sm.isSession();
+        return deliveryReportsCount;
+    }
 
-        // Build JSON response
-        String jsonResponse = format(
-                "{\"serviceTestResult\":\"%s\",\"logStatus\":\"%s\",\"messageSendResult\":%d,"
-                        + "\"deliveryReportsCount\":%d,\"logStatus2\":\"%s\"}",
-                serviceTestResult,
-                logged,
-                result,
-                reportsCount,
-                logStatus2
-        );
+    private static SmsMessage getSmsMessage(final SmsRequest smsRequest) {
+        SmsMessage msg = new SmsMessage();
+        msg.setMessage(smsRequest.getMessage());
+        msg.setSender(smsRequest.getSenderName());
+        msg.getRecipients().add(smsRequest.getRecipientNumber());
+        msg.setMessageType(smsRequest.isPromo() ? 1 : 0);
 
-        return Response.ok(jsonResponse).build();
+        return msg;
+    }
+
+    private static String runSmsServiceTest(final User user) {
+        ServiceTest test = new ServiceTest();
+        return test.testService(user);
+    }
+
+    private static SessionManager getLoggedInSessionManager(final User user) {
+        SessionManager sm = SessionManager.getInstance();
+        sm.login(user);
+
+        boolean logged = sm.isSession();
+        logger.info(format("User logged = %s", logged));
+
+        return sm;
     }
 }
