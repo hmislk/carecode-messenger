@@ -1,4 +1,4 @@
-package org.carecode.messenger;
+package org.carecode.messenger.email;
 
 import jakarta.mail.*;
 import jakarta.mail.internet.AddressException;
@@ -10,6 +10,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.carecode.messenger.common.SentStatus;
 
 import java.util.List;
 import java.util.Properties;

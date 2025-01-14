@@ -1,4 +1,4 @@
-package org.carecode.messenger;
+package org.carecode.messenger.email;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

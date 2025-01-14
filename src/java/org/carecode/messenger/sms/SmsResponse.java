@@ -1,6 +1,7 @@
-package org.carecode.messenger;
+package org.carecode.messenger.sms;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.carecode.messenger.common.SentStatus;
 
 public class SmsResponse {
     @JsonProperty("status")

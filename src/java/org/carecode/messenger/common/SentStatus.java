@@ -1,4 +1,4 @@
-package org.carecode.messenger;
+package org.carecode.messenger.common;
 
 public enum SentStatus {
     SENT, FAILED

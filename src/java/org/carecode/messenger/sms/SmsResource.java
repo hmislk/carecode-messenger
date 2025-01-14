@@ -1,4 +1,4 @@
-package org.carecode.messenger;
+package org.carecode.messenger.sms;
 
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;

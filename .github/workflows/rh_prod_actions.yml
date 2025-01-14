@@ -21,7 +21,7 @@ jobs:
 
       - name: Build with Java Compiler
         run: |
-          javac -cp "lib/ESMSlibV4.0.jar:lib/jakarta.ws.rs-api-3.1.0.jar:lib/jakarta.enterprise.cdi-api-4.1.0.jar:lib/jakarta.inject-api-2.0.1.jar:lib/jakarta.mail-api-2.1.3.jar:lib/jackson-annotations-2.18.2.jar:lib/jackson-databind-2.18.2.jar" -d target/WEB-INF/classes src/java/org/carecode/messenger/*
+          javac -cp "lib/ESMSlibV4.0.jar:lib/jakarta.ws.rs-api-3.1.0.jar:lib/jakarta.enterprise.cdi-api-4.1.0.jar:lib/jakarta.inject-api-2.0.1.jar:lib/jakarta.mail-api-2.1.3.jar:lib/jackson-annotations-2.18.2.jar:lib/jackson-databind-2.18.2.jar" -d target/WEB-INF/classes src/java/org/carecode/messenger/**/*.java
           mkdir target/WEB-INF/lib
           cp lib/ESMSlibV4.0.jar target/WEB-INF/lib/
           echo '${{ secrets.CONFIG }}' > target/WEB-INF/classes/config.properties

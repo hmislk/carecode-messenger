@@ -1,4 +1,4 @@
-package org.carecode.messenger;
+package org.carecode.messenger.sms;
 
 /**
  * @author Dr M H B Ariyaratne <buddhika.ari@gmail.com>
