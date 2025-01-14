@@ -66,10 +66,10 @@ public class EmailResource {
             }
 
             Transport.send(message);
-            logger.info("Email sent successfully to recipients.");
+            logger.info("Email sent successfully.");
 
             return Response
-                    .ok(new EmailResponse(SentStatus.SENT, "Email sent successfully to recipients."))
+                    .ok(new EmailResponse(SentStatus.SENT, "Email sent successfully."))
                     .build();
         } catch (Exception e) {
             final String message = "Failed to send email: " + e.getMessage();

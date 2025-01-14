@@ -10,13 +10,12 @@ import lk.mobitel.esms.message.SMSManager;
 import lk.mobitel.esms.session.NullSessionException;
 import lk.mobitel.esms.session.SessionManager;
 import lk.mobitel.esms.test.ServiceTest;
+import org.carecode.messenger.common.SentStatus;
 import wsdl.SmsMessage;
 import wsdl.User;
 
 import java.util.List;
 import java.util.logging.Logger;
-
-import static java.lang.String.format;
 
 @Path("sms")
 public class SmsResource {
@@ -31,31 +30,34 @@ public class SmsResource {
     public Response sendSms(final SmsRequest smsRequest) {
         logger.info("Received POST request to send Sms: " + smsRequest);
 
-        final User user = new User();
-        user.setUsername(smsRequest.getUsername());
-        user.setPassword(smsRequest.getPassword());
-
-        final String serviceTestResult = runSmsServiceTest(user); // TODO : Do something with service test result
-
-        updateSession(user);
-
-        final SmsMessage msg = getSmsMessage(smsRequest);
-
-        // Send the message
-        int result = -1;
-        SMSManager smsManager = new SMSManager();
         try {
-            result = smsManager.sendMessage(msg);
-            logger.info(format("Sent message result = %s", result));
-        } catch (NullSessionException ex) {
-            logger.severe(ex.getMessage());
+            final User user = new User();
+            user.setUsername(smsRequest.getUsername());
+            user.setPassword(smsRequest.getPassword());
+
+            final String serviceTestResult = runSmsServiceTest(user); // TODO : Do something with service test result
+
+            updateSession(user);
+
+            final SmsMessage msg = getSmsMessage(smsRequest);
+
+            SMSManager smsManager = new SMSManager();
+
+            int result = smsManager.sendMessage(msg);
+            logger.info("Sms sent successfully.");
+
+            return Response
+                    .ok(new SmsResponse(
+                            SentStatus.SENT,
+                            "Sms sent successfully.",
+                            result, serviceTestResult, getDeliveryReportsCount(smsRequest, smsManager)))
+                    .build();
+        } catch (Exception e) {
+            final String message = "Failed to send sms: " + e.getMessage();
+
+            logger.severe(message);
+            return Response.ok(new SmsResponse(SentStatus.FAILED, message)).build();
         }
-
-        final int deliveryReportsCount = getDeliveryReportsCount(smsRequest, smsManager);
-
-        return Response
-                .ok(new SmsResponse(result, serviceTestResult, deliveryReportsCount))
-                .build();
     }
 
     private static int getDeliveryReportsCount(final SmsRequest smsRequest, final SMSManager smsManager) {
