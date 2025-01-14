@@ -22,6 +22,8 @@ import static java.lang.String.format;
 public class SmsResource {
     private static final Logger logger = Logger.getLogger(SmsResource.class.getName());
 
+    private static SessionManager session;
+
     @POST
     @Path("send")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -33,9 +35,9 @@ public class SmsResource {
         user.setUsername(smsRequest.getUsername());
         user.setPassword(smsRequest.getPassword());
 
-        final String serviceTestResult = runSmsServiceTest(user);
+        final String serviceTestResult = runSmsServiceTest(user); // TODO : Do something with service test result
 
-        final SessionManager sessionManager = getLoggedInSessionManager(user);
+        updateSession(user);
 
         final SmsMessage msg = getSmsMessage(smsRequest);
 
@@ -50,8 +52,6 @@ public class SmsResource {
         }
 
         final int deliveryReportsCount = getDeliveryReportsCount(smsRequest, smsManager);
-
-        sessionManager.logout();
 
         return Response
                 .ok(new SmsResponse(result, serviceTestResult, deliveryReportsCount))
@@ -89,13 +89,10 @@ public class SmsResource {
         return test.testService(user);
     }
 
-    private static SessionManager getLoggedInSessionManager(final User user) {
-        SessionManager sm = SessionManager.getInstance();
-        sm.login(user);
-
-        boolean logged = sm.isSession();
-        logger.info(format("User logged = %s", logged));
-
-        return sm;
+    private static void updateSession(final User user) {
+        if (session == null || !session.isSession()) {
+            session = SessionManager.getInstance();
+            session.login(user);
+        }
     }
 }
