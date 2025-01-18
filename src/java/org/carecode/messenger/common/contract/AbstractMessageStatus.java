@@ -1,16 +1,16 @@
-package org.carecode.messenger.email;
+package org.carecode.messenger.common.contract;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import org.carecode.messenger.common.SentStatus;
 
-public class EmailResponse {
-    @JsonProperty("status")
+public abstract class AbstractMessageStatus {
     private SentStatus status;
-
-    @JsonProperty("message")
     private String message;
 
-    public EmailResponse(SentStatus status, String message) {
+    public AbstractMessageStatus(SentStatus status) {
+        this.status = status;
+    }
+
+    public AbstractMessageStatus(SentStatus status, String message) {
         this.status = status;
         this.message = message;
     }
@@ -33,7 +33,7 @@ public class EmailResponse {
 
     @Override
     public String toString() {
-        return "EmailResponse{" +
+        return "AbstractMessageStatus{" +
                 "status=" + status +
                 ", message='" + message + '\'' +
                 '}';

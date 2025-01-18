@@ -1,27 +1,23 @@
 package org.carecode.messenger.sms;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import lk.mobitel.esms.message.SMSManager;
-import lk.mobitel.esms.session.NullSessionException;
-import lk.mobitel.esms.session.SessionManager;
-import lk.mobitel.esms.test.ServiceTest;
 import org.carecode.messenger.common.SentStatus;
-import wsdl.SmsMessage;
-import wsdl.User;
 
 import java.util.List;
+import java.util.Properties;
 import java.util.logging.Logger;
 
 @Path("sms")
 public class SmsResource {
     private static final Logger logger = Logger.getLogger(SmsResource.class.getName());
 
-    private static SessionManager session;
+    private static final ISmsService service = new SmsService();
 
     @POST
     @Path("send")
@@ -31,70 +27,111 @@ public class SmsResource {
         logger.info("Received POST request to send Sms: " + smsRequest);
 
         try {
-            final User user = new User();
-            user.setUsername(smsRequest.getUsername());
-            user.setPassword(smsRequest.getPassword());
-
-            final String serviceTestResult = runSmsServiceTest(user); // TODO : Do something with service test result
-
-            updateSession(user);
-
-            final SmsMessage msg = getSmsMessage(smsRequest);
-
-            SMSManager smsManager = new SMSManager();
-
-            int result = smsManager.sendMessage(msg);
-            logger.info("Sms sent successfully.");
-
-            return Response
-                    .ok(new SmsResponse(
-                            SentStatus.SENT,
-                            "Sms sent successfully.",
-                            result, serviceTestResult, getDeliveryReportsCount(smsRequest, smsManager)))
-                    .build();
+            loadPropertiesFromRequest(smsRequest);
         } catch (Exception e) {
             final String message = "Failed to send sms: " + e.getMessage();
 
             logger.severe(message);
-            return Response.ok(new SmsResponse(SentStatus.FAILED, message)).build();
+            return Response.status(Response.Status.BAD_REQUEST).entity(new SmsResponse(SentStatus.FAILED, message)).build();
+        }
+
+        final SmsStatus smsStatus = (SmsStatus) service.send(
+                smsRequest.recipientNumbers, smsRequest.message, smsRequest.senderName,
+                smsRequest.isPromo != null && smsRequest.isPromo);
+
+        if (smsStatus.getStatus() == SentStatus.SENT) {
+            return Response.ok(SmsResponse.from(smsStatus)).build();
+        } else {
+            return Response.status(Response.Status.BAD_REQUEST).entity(SmsResponse.from(smsStatus)).build();
         }
     }
 
-    private static int getDeliveryReportsCount(final SmsRequest smsRequest, final SMSManager smsManager) {
-        int deliveryReportsCount = 0;
-
-        try {
-            List<SmsMessage> deliveryReports = smsManager.getDeliveryReports(smsRequest.getSenderName());
-
-            if (deliveryReports != null) {
-                deliveryReportsCount = deliveryReports.size();
-            }
-        } catch (NullSessionException ex) {
-            logger.severe(ex.getMessage());
+    private void loadPropertiesFromRequest(final SmsRequest smsRequest) throws IllegalArgumentException {
+        if (smsRequest.username == null || smsRequest.username.isEmpty()) {
+            throw new IllegalArgumentException("Username is required.");
         }
 
-        return deliveryReportsCount;
+        if (smsRequest.password == null || smsRequest.password.isEmpty()) {
+            throw new IllegalArgumentException("Password is required.");
+        }
+
+        Properties props = System.getProperties();
+        props.put("sms.username", smsRequest.username);
+        props.put("sms.password", smsRequest.password);
     }
 
-    private static SmsMessage getSmsMessage(final SmsRequest smsRequest) {
-        SmsMessage msg = new SmsMessage();
-        msg.setMessage(smsRequest.getMessage());
-        msg.setSender(smsRequest.getSenderName());
-        msg.getRecipients().add(smsRequest.getRecipientNumber());
-        msg.setMessageType(smsRequest.isPromo() ? 1 : 0);
+    /**
+     * @author Dr M H B Ariyaratne <buddhika.ari@gmail.com>
+     */
+    public static class SmsRequest {
+        @JsonProperty("username")
+        public String username;
 
-        return msg;
+        @JsonProperty("password")
+        public String password;
+
+        @JsonProperty("senderName")
+        public String senderName;
+
+        @JsonProperty("recipientNumbers")
+        public List<String> recipientNumbers;
+
+        @JsonProperty("message")
+        public String message;
+
+        @JsonProperty("isPromo")
+        public Boolean isPromo;
+
+        @Override
+        public String toString() {
+            return "SmsRequest{" +
+                    "senderName='" + senderName + '\'' +
+                    ", recipientNumbers='" + recipientNumbers + '\'' +
+                    ", message='" + message + '\'' +
+                    ", isPromo='" + isPromo + '\'' +
+                    '}';
+        }
     }
 
-    private static String runSmsServiceTest(final User user) {
-        ServiceTest test = new ServiceTest();
-        return test.testService(user);
-    }
+    public static class SmsResponse {
+        @JsonProperty("status")
+        public SentStatus status;
 
-    private static void updateSession(final User user) {
-        if (session == null || !session.isSession()) {
-            session = SessionManager.getInstance();
-            session.login(user);
+        @JsonProperty("message")
+        public String message;
+
+        @JsonProperty("result")
+        public int result;
+
+        @JsonProperty("deliveryReportsCount")
+        public int deliveryReportsCount;
+
+        public SmsResponse(SentStatus status, String message) {
+            this.status = status;
+            this.message = message;
+        }
+
+        public SmsResponse(SentStatus status, String message, int result, int deliveryReportsCount) {
+            this.status = status;
+            this.message = message;
+            this.result = result;
+            this.deliveryReportsCount = deliveryReportsCount;
+        }
+
+        public static SmsResponse from(final SmsStatus smsStatus) {
+            return new SmsResponse(
+                    smsStatus.getStatus(), smsStatus.getMessage(),
+                    smsStatus.getResult(), smsStatus.getDeliveryReportsCount());
+        }
+
+        @Override
+        public String toString() {
+            return "SmsResponse{" +
+                    "status=" + status +
+                    ", message='" + message + '\'' +
+                    ", result=" + result +
+                    ", deliveryReportsCount=" + deliveryReportsCount +
+                    '}';
         }
     }
 }
