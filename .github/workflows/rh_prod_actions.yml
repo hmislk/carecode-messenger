@@ -3,7 +3,7 @@ name: Ruhunu Prod Deployment
 on:
   push:
     branches:
-      - ruhunu-prod
+      - fake-branch
 
 jobs:
   build:
