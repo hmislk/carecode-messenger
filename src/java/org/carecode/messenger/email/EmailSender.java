@@ -4,6 +4,7 @@ import jakarta.mail.*;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import org.carecode.messenger.common.SentStatus;
 
 import java.util.List;
 import java.util.Properties;
@@ -14,11 +15,11 @@ public final class EmailSender {
 
     private static Session session;
 
-    public static void sendEmail(final List<String> to, final String subject, final String body, final boolean isHtml,
-                                 final String replyTo) throws RuntimeException, MessagingException {
+    public static EmailStatus sendEmail(final List<String> to, final String subject, final String body, final boolean isHtml,
+                                        final String replyTo) throws RuntimeException, MessagingException {
         updateSession();
 
-        MimeMessage message = new MimeMessage(session);
+        final MimeMessage message = new MimeMessage(session);
         message.setHeader("format", "flowed");
         message.setHeader("Content-Transfer-Encoding", "quoted-printable");
 
@@ -36,6 +37,8 @@ public final class EmailSender {
 
         Transport.send(message);
         logger.info("Email sent successfully.");
+
+        return new EmailStatus(SentStatus.SENT);
     }
 
     private static void updateSession() {

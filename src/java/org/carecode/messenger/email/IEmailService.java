@@ -6,19 +6,15 @@ import java.util.List;
 
 public interface IEmailService {
     /**
-     * Sends a message to multiple recipients in plain text or HTML.
+     * Sends an email to multiple recipients in plain text or HTML.
      *
-     * @param to      recipients (numbers / email addresses)
-     * @param subject message subject
-     * @param body    message body in plain text or HTML
-     * @param isHtml  true if the body is HTML, false if plain text
-     * @param replyTo reply-to address
-     * @throws RuntimeException if the message could not be sent
+     * @param recipients recipient email addresses
+     * @param subject    email subject
+     * @param body       email body in plain text or HTML
+     * @param isHtml     true if the body is HTML, false if plain text
+     * @param replyTo    reply-to email address
      */
     AbstractMessageStatus send(
-            final List<String> to,
-            final String subject,
-            final String body,
-            final boolean isHtml,
-            final String replyTo) throws RuntimeException;
+            final List<String> recipients, final String subject, final String body,
+            final boolean isHtml, final String replyTo);
 }

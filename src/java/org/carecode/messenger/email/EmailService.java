@@ -10,15 +10,16 @@ public final class EmailService implements IEmailService {
 
     @Override
     public EmailStatus send(final List<String> recipients, final String subject, final String body,
-                            final boolean isHtml, final String replyTo) throws RuntimeException {
+                            final boolean isHtml, final String replyTo) {
         try {
             validateAndCleanEmail(recipients, subject, replyTo);
 
             final String validatedReplyTo = (replyTo != null && !replyTo.isEmpty()) ? replyTo : "no_reply@example.com";
 
-            EmailSender.sendEmail(recipients, subject, body, isHtml, validatedReplyTo);
+            final EmailStatus emailStatus = EmailSender.sendEmail(recipients, subject, body, isHtml, validatedReplyTo);
+            emailStatus.setMessage("Email sent successfully.");
 
-            return new EmailStatus(SentStatus.SENT, "Email sent successfully.");
+            return emailStatus;
         } catch (Exception e) {
             final String message = "Failed to send email: " + e.getMessage();
 
@@ -39,11 +40,16 @@ public final class EmailService implements IEmailService {
             throw new IllegalArgumentException("Body is required.");
         }
 
-        if (recipients == null || recipients.isEmpty()) {
+        if (recipients == null) {
             logger.severe("At least one recipient email address is required.");
             throw new IllegalArgumentException("At least one recipient email address is required.");
         }
 
         recipients.removeIf(recipient -> recipient == null || recipient.isEmpty());
+
+        if (recipients.isEmpty()) {
+            logger.severe("At least one recipient email address is required.");
+            throw new IllegalArgumentException("At least one recipient email address is required.");
+        }
     }
 }

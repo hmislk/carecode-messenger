@@ -17,7 +17,7 @@ import java.util.logging.Logger;
 public class EmailResource {
     private static final Logger logger = Logger.getLogger(EmailResource.class.getName());
 
-    private static final IEmailService emailService = new EmailService();
+    private static final IEmailService service = new EmailService();
 
     @POST
     @Path("send")
@@ -26,15 +26,14 @@ public class EmailResource {
     public Response sendEmail(final EmailRequest emailRequest) {
         logger.log(Level.INFO, "Received POST request to send Email: " + emailRequest);
 
-        final EmailStatus messageStatus =
-                (EmailStatus) emailService.send(
-                        emailRequest.recipients, emailRequest.subject, emailRequest.body,
-                        emailRequest.isHtml != null && emailRequest.isHtml, emailRequest.replyTo);
+        final EmailStatus emailStatus = (EmailStatus) service.send(
+                emailRequest.recipients, emailRequest.subject, emailRequest.body,
+                emailRequest.isHtml != null && emailRequest.isHtml, emailRequest.replyTo);
 
-        if (messageStatus.getStatus() == SentStatus.SENT) {
-            return Response.ok(EmailResponse.from(messageStatus)).build();
+        if (emailStatus.getStatus() == SentStatus.SENT) {
+            return Response.ok(EmailResponse.from(emailStatus)).build();
         } else {
-            return Response.status(Response.Status.BAD_REQUEST).entity(EmailResponse.from(messageStatus)).build();
+            return Response.status(Response.Status.BAD_REQUEST).entity(EmailResponse.from(emailStatus)).build();
         }
     }
 

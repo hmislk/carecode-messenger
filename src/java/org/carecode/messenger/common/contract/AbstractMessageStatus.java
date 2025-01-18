@@ -3,8 +3,12 @@ package org.carecode.messenger.common.contract;
 import org.carecode.messenger.common.SentStatus;
 
 public abstract class AbstractMessageStatus {
-    private final SentStatus status;
-    private final String message;
+    private SentStatus status;
+    private String message;
+
+    public AbstractMessageStatus(SentStatus status) {
+        this.status = status;
+    }
 
     public AbstractMessageStatus(SentStatus status, String message) {
         this.status = status;
@@ -15,8 +19,16 @@ public abstract class AbstractMessageStatus {
         return status;
     }
 
+    public void setStatus(SentStatus status) {
+        this.status = status;
+    }
+
     public String getMessage() {
         return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
 
     @Override
