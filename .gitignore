@@ -13,6 +13,8 @@ nbproject/private/
 nbproject/Makefile-impl.xml
 nbproject/Makefile-debug.xml
 
+payara-micro-6.2025.1.jar
+
 *.log
 *.cache
 
