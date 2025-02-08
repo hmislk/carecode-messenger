@@ -12,7 +12,7 @@ public final class EmailService implements IEmailService {
     public EmailStatus send(final List<String> recipients, final String subject, final String body,
                             final boolean isHtml, final String replyTo) {
         try {
-            validateAndCleanEmail(recipients, subject, replyTo);
+            validateAndCleanEmail(recipients, subject, body);
 
             final String validatedReplyTo = (replyTo != null && !replyTo.isEmpty()) ? replyTo : "no_reply@example.com";
 
