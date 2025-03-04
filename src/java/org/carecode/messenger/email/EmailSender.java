@@ -35,6 +35,12 @@ public final class EmailSender {
             message.setHeader("Content-Type", "text/plain; charset=utf-8");
         }
 
+        String fromEmail = session.getProperty("mail.username");
+        if (fromEmail == null || fromEmail.isEmpty()) {
+            throw new RuntimeException("Sender email (mail.username) is not configured.");
+        }
+        message.setFrom(new InternetAddress(fromEmail));
+
         Transport.send(message);
         logger.info("Email sent successfully.");
 
