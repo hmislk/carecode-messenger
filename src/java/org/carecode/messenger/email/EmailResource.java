@@ -8,6 +8,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.carecode.messenger.common.SentStatus;
+import org.carecode.messenger.common.contract.SmtpConfig;
 
 import java.util.List;
 import java.util.logging.Level;
@@ -29,6 +30,29 @@ public class EmailResource {
         final EmailStatus emailStatus = (EmailStatus) service.send(
                 emailRequest.recipients, emailRequest.subject, emailRequest.body,
                 emailRequest.isHtml != null && emailRequest.isHtml, emailRequest.replyTo);
+
+        if (emailStatus.getStatus() == SentStatus.SENT) {
+            return Response.ok(EmailResponse.from(emailStatus)).build();
+        } else {
+            return Response.status(Response.Status.BAD_REQUEST).entity(EmailResponse.from(emailStatus)).build();
+        }
+    }
+
+    @POST
+    @Path("send/custom")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response sendEmailWithConfig(final EmailRequestWithClientConfigurations emailRequest) {
+        logger.log(Level.INFO, "Received POST request to send Email (custom config): " + emailRequest);
+
+        final EmailStatus emailStatus = (EmailStatus) service.send(
+                emailRequest.recipients,
+                emailRequest.subject,
+                emailRequest.body,
+                emailRequest.isHtml != null && emailRequest.isHtml,
+                emailRequest.replyTo,
+                emailRequest.smtpConfig
+        );
 
         if (emailStatus.getStatus() == SentStatus.SENT) {
             return Response.ok(EmailResponse.from(emailStatus)).build();
@@ -61,6 +85,38 @@ public class EmailResource {
                     ", recipients=" + recipients +
                     ", replyTo='" + replyTo + '\'' +
                     ", isHtml=" + isHtml +
+                    '}';
+        }
+    }
+
+    public static class EmailRequestWithClientConfigurations {
+        @JsonProperty("subject")
+        public String subject;
+
+        @JsonProperty("body")
+        public String body;
+
+        @JsonProperty("recipients")
+        public List<String> recipients;
+
+        @JsonProperty("replyTo")
+        public String replyTo;
+
+        @JsonProperty("isHtml")
+        public Boolean isHtml;
+
+        @JsonProperty("smtpConfig")
+        public SmtpConfig smtpConfig;
+
+        @Override
+        public String toString() {
+            return "EmailRequest{" +
+                    "subject='" + subject + '\'' +
+                    ", body='" + body + '\'' +
+                    ", recipients=" + recipients +
+                    ", replyTo='" + replyTo + '\'' +
+                    ", isHtml=" + isHtml +
+                    ", smtpConfig=" + smtpConfig +
                     '}';
         }
     }
