@@ -81,25 +81,23 @@ public final class EmailSender {
     }
 
     private static void updateSession() {
-        if (session == null) {
-            Properties properties = new Properties();
+        Properties properties = new Properties();
 
-            System.getProperties().forEach((key, value) -> {
-                if (key.toString().startsWith("mail.")) {
-                    properties.put(key, value);
-                }
-            });
-
-            if (properties.containsKey("mail.username") && properties.containsKey("mail.password")) {
-                Authenticator auth = new Authenticator() {
-                    protected PasswordAuthentication getPasswordAuthentication() {
-                        return new PasswordAuthentication(
-                                properties.getProperty("mail.username"), properties.getProperty("mail.password"));
-                    }
-                };
-
-                session = Session.getInstance(properties, auth);
+        System.getProperties().forEach((key, value) -> {
+            if (key.toString().startsWith("mail.")) {
+                properties.put(key, value);
             }
+        });
+
+        if (properties.containsKey("mail.username") && properties.containsKey("mail.password")) {
+            Authenticator auth = new Authenticator() {
+                protected PasswordAuthentication getPasswordAuthentication() {
+                    return new PasswordAuthentication(
+                            properties.getProperty("mail.username"), properties.getProperty("mail.password"));
+                }
+            };
+
+            session = Session.getInstance(properties, auth);
         }
     }
 
