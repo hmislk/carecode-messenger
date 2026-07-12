@@ -1,8 +1,10 @@
 package org.carecode.messenger.email;
 
 import org.carecode.messenger.common.SentStatus;
+import org.carecode.messenger.common.contract.EmailAttachment;
 import org.carecode.messenger.common.contract.SmtpConfig;
 
+import java.util.Base64;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -12,12 +14,25 @@ public final class EmailService implements IEmailService {
     @Override
     public EmailStatus send(final List<String> recipients, final String subject, final String body,
                             final boolean isHtml, final String replyTo) {
+        return send(recipients, subject, body, isHtml, replyTo, (List<EmailAttachment>) null);
+    }
+
+    @Override
+    public EmailStatus send(final List<String> recipients, final String subject, final String body,
+                            final boolean isHtml, final String replyTo, final SmtpConfig smtpConfigurations) {
+        return send(recipients, subject, body, isHtml, replyTo, null, smtpConfigurations);
+    }
+
+    @Override
+    public EmailStatus send(final List<String> recipients, final String subject, final String body,
+                            final boolean isHtml, final String replyTo, final List<EmailAttachment> attachments) {
         try {
             validateAndCleanEmail(recipients, subject, body);
+            validateAttachments(attachments);
 
             final String validatedReplyTo = (replyTo != null && !replyTo.isEmpty()) ? replyTo : "no_reply@example.com";
 
-            final EmailStatus emailStatus = EmailSender.sendEmail(recipients, subject, body, isHtml, validatedReplyTo);
+            final EmailStatus emailStatus = EmailSender.sendEmail(recipients, subject, body, isHtml, validatedReplyTo, attachments);
             emailStatus.setMessage("Email sent successfully.");
 
             return emailStatus;
@@ -31,13 +46,15 @@ public final class EmailService implements IEmailService {
 
     @Override
     public EmailStatus send(final List<String> recipients, final String subject, final String body,
-                            final boolean isHtml, final String replyTo, final SmtpConfig smtpConfigurations) {
+                            final boolean isHtml, final String replyTo, final List<EmailAttachment> attachments,
+                            final SmtpConfig smtpConfigurations) {
         try {
             validateAndCleanEmail(recipients, subject, body);
+            validateAttachments(attachments);
 
             final String validatedReplyTo = (replyTo != null && !replyTo.isEmpty()) ? replyTo : "no_reply@example.com";
 
-            final EmailStatus emailStatus = EmailSender.sendEmail(recipients, subject, body, isHtml, validatedReplyTo, smtpConfigurations);
+            final EmailStatus emailStatus = EmailSender.sendEmail(recipients, subject, body, isHtml, validatedReplyTo, attachments, smtpConfigurations);
             emailStatus.setMessage("Email sent successfully.");
 
             return emailStatus;
@@ -71,6 +88,33 @@ public final class EmailService implements IEmailService {
         if (recipients.isEmpty()) {
             logger.severe("At least one recipient email address is required.");
             throw new IllegalArgumentException("At least one recipient email address is required.");
+        }
+    }
+
+    private static void validateAttachments(final List<EmailAttachment> attachments) throws IllegalArgumentException {
+        if (attachments == null || attachments.isEmpty()) {
+            return;
+        }
+
+        for (final EmailAttachment attachment : attachments) {
+            if (attachment == null) {
+                logger.severe("Attachment entry must not be null.");
+                throw new IllegalArgumentException("Attachment entry must not be null.");
+            }
+            if (attachment.fileName() == null || attachment.fileName().isEmpty()) {
+                logger.severe("Attachment file name is required.");
+                throw new IllegalArgumentException("Attachment file name is required.");
+            }
+            if (attachment.base64Content() == null || attachment.base64Content().isEmpty()) {
+                logger.severe("Attachment content is required: " + attachment.fileName());
+                throw new IllegalArgumentException("Attachment content is required: " + attachment.fileName());
+            }
+            try {
+                Base64.getDecoder().decode(attachment.base64Content());
+            } catch (IllegalArgumentException e) {
+                logger.severe("Attachment content is not valid base64: " + attachment.fileName());
+                throw new IllegalArgumentException("Attachment content is not valid base64: " + attachment.fileName());
+            }
         }
     }
 }

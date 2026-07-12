@@ -1,5 +1,6 @@
 package org.carecode.messenger.email;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
@@ -8,6 +9,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.carecode.messenger.common.SentStatus;
+import org.carecode.messenger.common.contract.EmailAttachment;
 import org.carecode.messenger.common.contract.SmtpConfig;
 
 import java.util.List;
@@ -29,7 +31,8 @@ public class EmailResource {
 
         final EmailStatus emailStatus = (EmailStatus) service.send(
                 emailRequest.recipients, emailRequest.subject, emailRequest.body,
-                emailRequest.isHtml != null && emailRequest.isHtml, emailRequest.replyTo);
+                emailRequest.isHtml != null && emailRequest.isHtml, emailRequest.replyTo,
+                emailRequest.attachments);
 
         if (emailStatus.getStatus() == SentStatus.SENT) {
             return Response.ok(EmailResponse.from(emailStatus)).build();
@@ -51,6 +54,7 @@ public class EmailResource {
                 emailRequest.body,
                 emailRequest.isHtml != null && emailRequest.isHtml,
                 emailRequest.replyTo,
+                emailRequest.attachments,
                 emailRequest.smtpConfig
         );
 
@@ -61,6 +65,7 @@ public class EmailResource {
         }
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class EmailRequest {
         @JsonProperty("subject")
         public String subject;
@@ -77,6 +82,9 @@ public class EmailResource {
         @JsonProperty("isHtml")
         public Boolean isHtml;
 
+        @JsonProperty("attachments")
+        public List<EmailAttachment> attachments;
+
         @Override
         public String toString() {
             return "EmailRequest{" +
@@ -85,10 +93,12 @@ public class EmailResource {
                     ", recipients=" + recipients +
                     ", replyTo='" + replyTo + '\'' +
                     ", isHtml=" + isHtml +
+                    ", attachments=" + (attachments != null ? attachments : "null") +
                     '}';
         }
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class EmailRequestWithClientConfigurations {
         @JsonProperty("subject")
         public String subject;
@@ -105,6 +115,9 @@ public class EmailResource {
         @JsonProperty("isHtml")
         public Boolean isHtml;
 
+        @JsonProperty("attachments")
+        public List<EmailAttachment> attachments;
+
         @JsonProperty("smtpConfig")
         public SmtpConfig smtpConfig;
 
@@ -116,6 +129,7 @@ public class EmailResource {
                     ", recipients=" + recipients +
                     ", replyTo='" + replyTo + '\'' +
                     ", isHtml=" + isHtml +
+                    ", attachments=" + (attachments != null ? attachments : "null") +
                     ", smtpConfig=" + smtpConfig +
                     '}';
         }

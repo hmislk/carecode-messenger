@@ -1,5 +1,5 @@
 # Local Command References
-- `javac -cp "lib/ESMSlibV4.0.jar:lib/jakarta.ws.rs-api-3.1.0.jar:lib/jakarta.enterprise.cdi-api-4.1.0.jar:lib/jakarta.inject-api-2.0.1.jar:lib/jakarta.mail-api-2.1.3.jar:lib/jackson-annotations-2.18.2.jar:lib/jackson-databind-2.18.2.jar" -d out/WEB-INF/classes src/java/org/carecode/messenger/**/*.java` - Compile
+- `javac -cp "lib/ESMSlibV4.0.jar:lib/jakarta.ws.rs-api-3.1.0.jar:lib/jakarta.enterprise.cdi-api-4.1.0.jar:lib/jakarta.inject-api-2.0.1.jar:lib/jakarta.mail-api-2.1.3.jar:lib/jakarta.activation-api-2.1.3.jar:lib/jackson-annotations-2.18.2.jar:lib/jackson-databind-2.18.2.jar" -d out/WEB-INF/classes src/java/org/carecode/messenger/**/*.java` - Compile
 - `cp config.properties out/WEB-INF/classes` - Copy config.properties with testing email server details
 - `mkdir out/WEB-INF/lib` - Create out/WEB-INF/lib/
 - `cp lib/ESMSlibV4.0.jar out/WEB-INF/lib/` - Copy ESMSlibV4.0.jar to out/WEB-INF/lib/

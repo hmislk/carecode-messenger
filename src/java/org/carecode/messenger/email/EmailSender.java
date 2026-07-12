@@ -1,12 +1,19 @@
 package org.carecode.messenger.email;
 
+import jakarta.activation.DataHandler;
+import jakarta.activation.DataSource;
 import jakarta.mail.*;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.util.ByteArrayDataSource;
 import org.carecode.messenger.common.SentStatus;
+import org.carecode.messenger.common.contract.EmailAttachment;
 import org.carecode.messenger.common.contract.SmtpConfig;
 
+import java.util.Base64;
 import java.util.List;
 import java.util.Properties;
 import java.util.logging.Logger;
@@ -18,8 +25,33 @@ public final class EmailSender {
 
     public static EmailStatus sendEmail(final List<String> to, final String subject, final String body, final boolean isHtml,
                                         final String replyTo) throws RuntimeException, MessagingException {
+        return sendEmail(to, subject, body, isHtml, replyTo, (List<EmailAttachment>) null);
+    }
+
+    public static EmailStatus sendEmail(final List<String> to, final String subject, final String body, final boolean isHtml,
+                                        final String replyTo, final List<EmailAttachment> attachments)
+            throws RuntimeException, MessagingException {
         updateSession();
 
+        return composeAndSend(to, subject, body, isHtml, replyTo, attachments);
+    }
+
+    public static EmailStatus sendEmail(final List<String> to, final String subject, final String body, final boolean isHtml,
+                                        final String replyTo, final SmtpConfig smtpConfigurations) throws RuntimeException, MessagingException {
+        return sendEmail(to, subject, body, isHtml, replyTo, null, smtpConfigurations);
+    }
+
+    public static EmailStatus sendEmail(final List<String> to, final String subject, final String body, final boolean isHtml,
+                                        final String replyTo, final List<EmailAttachment> attachments,
+                                        final SmtpConfig smtpConfigurations) throws RuntimeException, MessagingException {
+        updateSession(smtpConfigurations);
+
+        return composeAndSend(to, subject, body, isHtml, replyTo, attachments);
+    }
+
+    private static EmailStatus composeAndSend(final List<String> to, final String subject, final String body, final boolean isHtml,
+                                              final String replyTo, final List<EmailAttachment> attachments)
+            throws RuntimeException, MessagingException {
         final MimeMessage message = new MimeMessage(session);
         message.setHeader("format", "flowed");
         message.setHeader("Content-Transfer-Encoding", "quoted-printable");
@@ -28,12 +60,30 @@ public final class EmailSender {
         message.setReplyTo(new InternetAddress[]{new InternetAddress(replyTo, false)});
         message.addRecipients(Message.RecipientType.TO, getInternetAddresses(to));
 
-        if (isHtml) {
-            message.setContent(body, "text/html");
-            message.setHeader("Content-Type", "text/html; charset=utf-8");
+        if (attachments == null || attachments.isEmpty()) {
+            if (isHtml) {
+                message.setContent(body, "text/html");
+                message.setHeader("Content-Type", "text/html; charset=utf-8");
+            } else {
+                message.setText(body);
+                message.setHeader("Content-Type", "text/plain; charset=utf-8");
+            }
         } else {
-            message.setText(body);
-            message.setHeader("Content-Type", "text/plain; charset=utf-8");
+            final Multipart multipart = new MimeMultipart();
+
+            final MimeBodyPart bodyPart = new MimeBodyPart();
+            if (isHtml) {
+                bodyPart.setContent(body, "text/html; charset=utf-8");
+            } else {
+                bodyPart.setText(body, "utf-8");
+            }
+            multipart.addBodyPart(bodyPart);
+
+            for (final EmailAttachment attachment : attachments) {
+                multipart.addBodyPart(toBodyPart(attachment));
+            }
+
+            message.setContent(multipart);
         }
 
         String fromEmail = session.getProperty("mail.username");
@@ -48,36 +98,24 @@ public final class EmailSender {
         return new EmailStatus(SentStatus.SENT);
     }
 
-    public static EmailStatus sendEmail(final List<String> to, final String subject, final String body, final boolean isHtml,
-                                        final String replyTo, final SmtpConfig smtpConfigurations) throws RuntimeException, MessagingException {
-        updateSession(smtpConfigurations);
-
-        final MimeMessage message = new MimeMessage(session);
-        message.setHeader("format", "flowed");
-        message.setHeader("Content-Transfer-Encoding", "quoted-printable");
-
-        message.setSubject(subject);
-        message.setReplyTo(new InternetAddress[]{new InternetAddress(replyTo, false)});
-        message.addRecipients(Message.RecipientType.TO, getInternetAddresses(to));
-
-        if (isHtml) {
-            message.setContent(body, "text/html");
-            message.setHeader("Content-Type", "text/html; charset=utf-8");
-        } else {
-            message.setText(body);
-            message.setHeader("Content-Type", "text/plain; charset=utf-8");
+    private static MimeBodyPart toBodyPart(final EmailAttachment attachment) throws MessagingException {
+        final byte[] content;
+        try {
+            content = Base64.getDecoder().decode(attachment.base64Content());
+        } catch (IllegalArgumentException e) {
+            throw new MessagingException("Attachment content is not valid base64: " + attachment.fileName(), e);
         }
 
-        String fromEmail = session.getProperty("mail.username");
-        if (fromEmail == null || fromEmail.isEmpty()) {
-            throw new RuntimeException("Sender email (mail.username) is not configured.");
-        }
-        message.setFrom(new InternetAddress(fromEmail));
+        final String contentType = (attachment.contentType() != null && !attachment.contentType().isEmpty())
+                ? attachment.contentType() : "application/octet-stream";
 
-        Transport.send(message);
-        logger.info("Email sent successfully.");
+        final MimeBodyPart attachmentPart = new MimeBodyPart();
+        final DataSource dataSource = new ByteArrayDataSource(content, contentType);
+        attachmentPart.setDataHandler(new DataHandler(dataSource));
+        attachmentPart.setFileName(attachment.fileName());
+        attachmentPart.setDisposition(Part.ATTACHMENT);
 
-        return new EmailStatus(SentStatus.SENT);
+        return attachmentPart;
     }
 
     private static void updateSession() {
