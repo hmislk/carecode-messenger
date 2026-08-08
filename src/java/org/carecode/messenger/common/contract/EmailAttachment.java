@@ -1,9 +1,29 @@
 package org.carecode.messenger.common.contract;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+/**
+ * Plain JSON-B-friendly bean (Payara's JAX-RS runtime deserializes with
+ * Yasson/JSON-B, not Jackson, even though Jackson is on the compile
+ * classpath) - needs a no-arg constructor and public fields.
+ */
+public class EmailAttachment {
+    public String fileName;
+    public String contentType;
+    public String base64Content;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
-public record EmailAttachment(String fileName, String contentType, String base64Content) {
+    public EmailAttachment() {
+    }
+
+    public String fileName() {
+        return fileName;
+    }
+
+    public String contentType() {
+        return contentType;
+    }
+
+    public String base64Content() {
+        return base64Content;
+    }
 
     @Override
     public String toString() {

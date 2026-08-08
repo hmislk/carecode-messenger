@@ -1,9 +1,9 @@
-name: Ruhunu Prod Deployment
+name: Messenger Deployment
 
 on:
   push:
     branches:
-      - fake-branch
+      - ruhunu-prod
 
 jobs:
   build:
@@ -21,12 +21,13 @@ jobs:
 
       - name: Build with Java Compiler
         run: |
-          javac -cp "lib/ESMSlibV4.0.jar:lib/jakarta.ws.rs-api-3.1.0.jar:lib/jakarta.enterprise.cdi-api-4.1.0.jar:lib/jakarta.inject-api-2.0.1.jar:lib/jakarta.mail-api-2.1.3.jar:lib/jackson-annotations-2.18.2.jar:lib/jackson-databind-2.18.2.jar" -d target/WEB-INF/classes src/java/org/carecode/messenger/**/*.java
-          mkdir target/WEB-INF/lib
+          mkdir -p target/WEB-INF/classes
+          javac --release 11 -cp "lib/ESMSlibV4.0.jar:lib/jakarta.ws.rs-api-3.1.0.jar:lib/jakarta.enterprise.cdi-api-4.1.0.jar:lib/jakarta.inject-api-2.0.1.jar:lib/jakarta.mail-api-2.1.3.jar:lib/jakarta.activation-api-2.1.3.jar:lib/jackson-annotations-2.18.2.jar:lib/jackson-databind-2.18.2.jar" -d target/WEB-INF/classes $(find src/java -name "*.java")
+          mkdir -p target/WEB-INF/lib
           cp lib/ESMSlibV4.0.jar target/WEB-INF/lib/
           echo '${{ secrets.CONFIG }}' > target/WEB-INF/classes/config.properties
-          jar -cvf target/messenger.war -C target/ .
-          jar tf target/messenger.war
+          jar -cvf target/messenger2.war -C target/ .
+          jar tf target/messenger2.war
 
       - name: Archive Build Artifacts
         uses: actions/upload-artifact@v3
@@ -47,26 +48,23 @@ jobs:
 
       - name: Deploy to Payara
         env:
-          SERVER_IP: ${{ secrets.RUHUNU_PROD_SERVER_IP }}
-          SERVER_USER: ${{ secrets.RUHUNU_PROD_SERVER_USER }}
-          SSH_PRIVATE_KEY: ${{ secrets.RUHUNU_PROD_SSH_PRIVATE_KEY }}
-          PAYARA_ADMIN_PASS: ${{ secrets.RUHUNU_PROD_PAYARA_ADMIN_PASS }}
+          SERVER_IP: ${{ secrets.MESSENGER_PROD_SERVER_IP }}
+          SERVER_USER: ${{ secrets.MESSENGER_PROD_SERVER_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.MESSENGER_PROD_SSH_PRIVATE_KEY }}
+          PAYARA_ADMIN_PASS: ${{ secrets.MESSENGER_PROD_PAYARA_ADMIN_PASS }}
         run: |
           # Add SSH private key to the SSH agent
           echo "$SSH_PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
 
           # Variables
-          WAR_NAME="messenger.war"
+          WAR_NAME="messenger2.war"
           WAR_DIR="/home/appuser/app/latest"
-          APP_NAME="messenger"
-          # SUBDOMAIN="comm"
+          APP_NAME="messenger2"
 
-          # Ensure deployment directory exists
+          # Ensure deployment directory exists (no sudo - SSH key logs in directly as appuser)
           ssh -i private_key.pem -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "
-            sudo mkdir -p $WAR_DIR
-            sudo chown -R appuser:appuser /home/appuser/app/latest
-            sudo su - appuser
+            mkdir -p $WAR_DIR
             cd $WAR_DIR
 
             # Remove old backup if it exists
@@ -81,34 +79,40 @@ jobs:
           "
 
           # Copy new WAR file to the server
-          rsync -aL --progress -e "ssh -i private_key.pem" ./*.war $SERVER_USER@$SERVER_IP:/tmp/$WAR_NAME
-
-          # Move the file to /home/appuser/app/latest/ and set permissions
-          ssh -i private_key.pem -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "
-            sudo mv /tmp/$WAR_NAME $WAR_DIR/
-            sudo chown appuser:appuser $WAR_DIR/$WAR_NAME
-          "
+          rsync -aL --progress -e "ssh -i private_key.pem" ./*.war $SERVER_USER@$SERVER_IP:$WAR_DIR/$WAR_NAME
 
           # Deploy the WAR using asadmin
           ssh -i private_key.pem -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "
-            sudo su - appuser
-            echo 'AS_ADMIN_PASSWORD=$PAYARA_ADMIN_PASS' > /tmp/payara-admin-pass.txt
-            /opt/payara5/bin/asadmin --user admin --passwordfile /tmp/payara-admin-pass.txt undeploy $APP_NAME || true
-            /opt/payara5/bin/asadmin --user admin --passwordfile /tmp/payara-admin-pass.txt deploy --force=true --contextroot $APP_NAME $WAR_DIR/$WAR_NAME
-            rm /tmp/payara-admin-pass.txt
+            echo 'AS_ADMIN_PASSWORD=$PAYARA_ADMIN_PASS' > /tmp/payara-admin-pass-messenger2.txt
+            /opt/payara5/bin/asadmin --user admin --passwordfile /tmp/payara-admin-pass-messenger2.txt undeploy $APP_NAME || true
+            /opt/payara5/bin/asadmin --user admin --passwordfile /tmp/payara-admin-pass-messenger2.txt deploy --force=true --contextroot $APP_NAME $WAR_DIR/$WAR_NAME
+            rm /tmp/payara-admin-pass-messenger2.txt
           "
 
           # Validate if the application is running
           ssh -i private_key.pem -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "
-            sudo su - appuser
-            echo 'AS_ADMIN_PASSWORD=$PAYARA_ADMIN_PASS' > /tmp/payara-admin-pass.txt
-            if /opt/payara5/bin/asadmin --user admin --passwordfile /tmp/payara-admin-pass.txt list-applications | grep -q '$APP_NAME'; then
+            echo 'AS_ADMIN_PASSWORD=$PAYARA_ADMIN_PASS' > /tmp/payara-admin-pass-messenger2.txt
+            if /opt/payara5/bin/asadmin --user admin --passwordfile /tmp/payara-admin-pass-messenger2.txt list-applications | grep -q '$APP_NAME'; then
               echo 'Application is running.'
             else
               echo 'Application failed to start.'
+              exit 1
             fi
-            rm /tmp/payara-admin-pass.txt
+            rm /tmp/payara-admin-pass-messenger2.txt
           "
+
+          # Check if the application is reachable (empty payload triggers a 400 validation
+          # response from a live app, without sending a real email on every deploy)
+          for i in {1..5}; do
+            RESPONSE_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H "Content-Type: application/json" -d '{}' https://rh.carecode.org/$APP_NAME/api/email/send)
+            if [ "$RESPONSE_CODE" == "400" ] || [ "$RESPONSE_CODE" == "200" ]; then
+              echo "Application is reachable and healthy (HTTP $RESPONSE_CODE)."
+              break
+            elif [ "$i" == "5" ]; then
+              echo "Application is not reachable or unhealthy at https://rh.carecode.org/$APP_NAME (HTTP $RESPONSE_CODE)"
+            fi
+            sleep 10
+          done
 
           # Cleanup
           rm -f private_key.pem
