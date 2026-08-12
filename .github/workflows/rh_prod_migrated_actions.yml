@@ -1,0 +1,120 @@
+name: "Ruhunu prod migrated deployment"
+
+on:
+  push:
+    branches: [ruhunu-prod-migrated]
+  workflow_dispatch:
+
+concurrency:
+  # One Payara domain per VM, shared with rh, mp and rmh. Two asadmin deploys
+  # at once against the same domain leaves a half-deployed app.
+  group: payara-shared2-migrated
+  cancel-in-progress: false
+
+env:
+  APP_NAME:   messenger2
+  WAR_DIR:    /home/appuser/app/latest
+  PAYARA:     /opt/payara5
+  HEALTH_URL: https://rh-migrated.carecode.org/messenger2/api/email/send
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Build with the Java compiler
+        run: |
+          mkdir -p target/WEB-INF/classes
+          javac --release 11 -cp "lib/ESMSlibV4.0.jar:lib/jakarta.ws.rs-api-3.1.0.jar:lib/jakarta.enterprise.cdi-api-4.1.0.jar:lib/jakarta.inject-api-2.0.1.jar:lib/jakarta.mail-api-2.1.3.jar:lib/jakarta.activation-api-2.1.3.jar:lib/jackson-annotations-2.18.2.jar:lib/jackson-databind-2.18.2.jar" \
+            -d target/WEB-INF/classes $(find src/java -name "*.java")
+          mkdir -p target/WEB-INF/lib
+          cp lib/ESMSlibV4.0.jar target/WEB-INF/lib/
+          echo '${{ secrets.CONFIG }}' > target/WEB-INF/classes/config.properties
+          jar -cvf target/messenger2.war -C target/ .
+
+      - name: Confirm config.properties actually made it into the WAR
+        run: |
+          # An empty CONFIG secret produces a WAR that deploys fine and then
+          # fails on the first email with no obvious cause. Catch it here.
+          jar tf target/messenger2.war | grep -q 'WEB-INF/classes/config.properties' \
+            || { echo "config.properties missing from the WAR — is the CONFIG secret set?"; exit 1; }
+          test -s target/WEB-INF/classes/config.properties \
+            || { echo "config.properties is EMPTY — the CONFIG secret is unset or blank"; exit 1; }
+          echo "config.properties present, $(wc -l < target/WEB-INF/classes/config.properties) lines"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: target/*.war
+          overwrite: true
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: prod-migrated        # add a required reviewer here to gate it
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: ./
+
+      - name: Deploy to Payara on shared2
+        env:
+          SERVER_IP:   ${{ secrets.PROD_SHARED2_IP }}
+          SERVER_USER: ${{ secrets.PROD_MIGRATED_SERVER_USER }}
+          SSH_KEY:     ${{ secrets.PROD_MIGRATED_SSH_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          echo "$SSH_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          SSH="ssh -i private_key.pem -o StrictHostKeyChecking=accept-new"
+
+          # Keep one rollback copy, as the other pipelines do.
+          $SSH "$SERVER_USER@$SERVER_IP" "
+            mkdir -p $WAR_DIR
+            if [ -f $WAR_DIR/$APP_NAME.war ]; then
+              cp $WAR_DIR/$APP_NAME.war $WAR_DIR/$APP_NAME.war.old
+            fi
+          "
+
+          rsync -aL --progress -e "ssh -i private_key.pem" ./messenger2.war \
+            "$SERVER_USER@$SERVER_IP:$WAR_DIR/$APP_NAME.war"
+
+          # asadmin runs as appuser via sudo. The password comes from the
+          # Ansible-managed password file on the VM, so it never appears here.
+          $SSH "$SERVER_USER@$SERVER_IP" "
+            set -euo pipefail
+            ASADMIN=\"sudo -u appuser $PAYARA/glassfish/bin/asadmin --user admin --passwordfile $PAYARA/.asadminpass\"
+            \$ASADMIN undeploy $APP_NAME || echo 'not previously deployed'
+            \$ASADMIN deploy --force=true --contextroot $APP_NAME --name $APP_NAME $WAR_DIR/$APP_NAME.war
+            \$ASADMIN list-applications | grep -qw $APP_NAME \
+              || { echo 'messenger2 is not in list-applications after deploy'; exit 1; }
+          "
+          rm -f private_key.pem
+
+      - name: Health check
+        run: |
+          # An empty JSON body makes a live service return 400 from its own
+          # validation. That proves the app is up and routing without sending
+          # a real SMS or email on every deploy.
+          for i in $(seq 1 10); do
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 \
+                   -X POST -H 'Content-Type: application/json' -d '{}' "$HEALTH_URL" || echo 000)
+            echo "attempt $i: HTTP $CODE"
+            case "$CODE" in
+              400|200) echo "✅ messenger2 healthy at $HEALTH_URL"; exit 0 ;;
+              404)     echo "   404 — deployed, but nginx has no /messenger2 route yet." ;;
+            esac
+            sleep 10
+          done
+          echo "✗ messenger2 did not become healthy at $HEALTH_URL"
+          echo "  A persistent 404 means the nginx location block is missing — run:"
+          echo "    ansible-playbook site.yml -i inventory/prod.yml --limit vm-hmis-shared2 --ask-vault-pass --tags nginx"
+          exit 1
