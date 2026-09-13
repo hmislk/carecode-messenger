@@ -13,3 +13,7 @@
 
 ## Payara Micro Command References
 - `java -jar payara-micro-6.2025.1.jar --deploy out/messenger.war --port 8081` - Start Payara Micro and deploy messenger.war
+
+## Licence
+
+This project is licensed under the GNU General Public License v3.0. See [LICENSE](LICENSE).
