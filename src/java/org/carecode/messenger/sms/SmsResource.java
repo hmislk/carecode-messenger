@@ -9,6 +9,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.carecode.messenger.common.SentStatus;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.logging.Logger;
@@ -27,6 +28,7 @@ public class SmsResource {
         logger.info("Received POST request to send Sms: " + smsRequest);
 
         try {
+            smsRequest.applyHmisSimpleJsonAliases();
             loadPropertiesFromRequest(smsRequest);
         } catch (Exception e) {
             final String message = "Failed to send sms: " + e.getMessage();
@@ -81,6 +83,44 @@ public class SmsResource {
 
         @JsonProperty("isPromo")
         public Boolean isPromo;
+
+        // Aliases sent by HMIS "SMS Gateway with Simple JSON" mode (SmsManagerEjb.sendSmsWithSimpleJson).
+        // "mesageType" is misspelt in HMIS; it is matched as sent.
+        @JsonProperty("from")
+        public String from;
+
+        @JsonProperty("to")
+        public String to;
+
+        @JsonProperty("text")
+        public String text;
+
+        @JsonProperty("mesageType")
+        public Integer mesageType;
+
+        /**
+         * Fills the native fields from the HMIS Simple JSON aliases when the native ones are absent.
+         * "to" may hold several numbers separated by commas.
+         */
+        void applyHmisSimpleJsonAliases() {
+            if ((senderName == null || senderName.isEmpty()) && from != null) {
+                senderName = from;
+            }
+            if ((recipientNumbers == null || recipientNumbers.isEmpty()) && to != null) {
+                recipientNumbers = new ArrayList<>();
+                for (String number : to.split(",")) {
+                    if (!number.trim().isEmpty()) {
+                        recipientNumbers.add(number.trim());
+                    }
+                }
+            }
+            if (message == null && text != null) {
+                message = text;
+            }
+            if (isPromo == null && mesageType != null) {
+                isPromo = mesageType == 1;
+            }
+        }
 
         @Override
         public String toString() {

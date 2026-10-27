@@ -15,7 +15,9 @@ public final class SmsService implements ISmsService {
             validateAndCleanEmail(recipients, body, senderName);
 
             final SmsStatus smsStatus = SmsSender.sendSms(recipients, body, senderName, isPromo);
-            smsStatus.setMessage("Sms sent successfully.");
+            if (smsStatus.getStatus() == SentStatus.SENT) {
+                smsStatus.setMessage("Sms sent successfully.");
+            }
 
             return smsStatus;
         } catch (Exception e) {

@@ -15,7 +15,7 @@ env:
   APP_NAME:   messenger2
   WAR_DIR:    /home/appuser/app/latest
   PAYARA:     /opt/payara5
-  HEALTH_URL: https://rh-migrated.carecode.org/messenger2/api/email/send
+  HEALTH_URL: https://rh.carecode.org/messenger2/api/email/send
 
 jobs:
   build:
