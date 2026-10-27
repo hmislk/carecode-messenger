@@ -15,6 +15,8 @@ import java.util.logging.Logger;
 public final class SmsSender {
     private static final Logger logger = Logger.getLogger(SmsSender.class.getName());
 
+    private static final int MOBITEL_SUCCESS = 200;
+
     private static SessionManager session;
 
     public static SmsStatus sendSms(final List<String> recipients, final String body, final String senderName,
@@ -29,7 +31,13 @@ public final class SmsSender {
         SMSManager smsManager = new SMSManager();
 
         final int result = smsManager.sendMessage(msg);
-        logger.info("Sms sent successfully. Result count : " + result);
+
+        // Mobitel ESMS returns 200 on success; any other code (e.g. 169 invalid alias) means it was not sent.
+        if (result != MOBITEL_SUCCESS) {
+            logger.severe("Mobitel ESMS rejected the sms. Result code : " + result);
+            return new SmsStatus(SentStatus.FAILED, "Failed to send sms: Mobitel ESMS result code " + result, result, 0);
+        }
+        logger.info("Sms sent successfully. Result code : " + result);
 
         final int deliveryReportsCount = getDeliveryReportsCount(senderName, smsManager);
 
